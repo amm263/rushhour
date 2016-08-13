@@ -1,12 +1,15 @@
 #!/usr/bin/python3
 
 import sys
+import time
 from controller import Controller
+from model import Model
 
 #Input Options
 verbose = False
 interactive = False
 file_path = ''
+start_time = time.time()
 
 #Parse arguments
 del sys.argv[0] #First argument is program name.
@@ -63,39 +66,47 @@ elif not file_path=='':
 			rows += 1
 		else :	
 			sys.exit("Error: Wrong input in row {}. Expecting {} columns, but received {}.".format(rows, cols, len(line)))
+	f.close()		
 				
 else:		
 	print ("Usage: $rushour.py [-v] [-i] [file_path] \n\t-v: Verbose mode \n\t-i: Interactive mode (overrides file usage)	\n\tfile_path: Parse a text file containing a game board")
 	sys.exit()
 				
 if verbose:
-		print ("\nBoard acquired: ")			
-		for x in range(0,rows):
-			print (board[x])	
-		print ("\nFinding any solution...")				
-					
-	
-controller = Controller(rows, cols, board, verbose)
-controller.play()		
+	print ("\nBoard acquired: ")			
+	for x in range(0,rows):
+		print (board[x])	
+	print ("\nFinding any solution...")				
 
-if len(controller.solution)>0:
-	depth = len(controller.solution)
+board = ''.join(board)
+model = Model(rows, cols, board)					
+controller = Controller(model, verbose)
+
+if (controller.play()):		
+	if len(model.solution)>0:   #Paranoia
+		depth = len(model.solution)
+		if interactive or verbose:
+			for x in range(1, depth):
+				print ("\nStep {} - {}".format(x, model.solution[x]))
+				for z in range(0,rows):
+					print (model.solution_frames[x][z])	
+			print("\nWon in {} steps!".format(depth-1))	
+			print("\nTime: {0:.3} seconds".format(time.time()-start_time))
+		else: 	
+			f = open(file_path+'.solved', 'w')
+			f.write("Step 0 - Origin board")
+			for x in range(0,rows):
+				f.write('\n'+board[x])	
+			for x in range(1, depth):
+				f.write("\nStep {} - {}".format(x, model.solution[x]))
+				for z in range(0,rows):
+					f.write('\n'+model.solution_frames[x][z])	
+			f.write("\nWon in {} steps!".format(depth-1))	
+			f.write("\nTime: {0:.3g} seconds".format(time.time()-start_time))
+			f.close()
+else:
 	if interactive or verbose:
-		for x in range(1, depth):
-			print ("\nStep {} - {}".format(x, controller.solution[x]))
-			for z in range(0,rows):
-				print (controller.solution_frames[x][z])	
-		print("\nWon in {} steps!".format(depth-1))	
-	else: 	
-		f = open(file_path+'.solved', 'w')
-		f.write("Step 0 - Origin board")
-		for x in range(0,rows):
-			f.write('\n'+board[x])	
-		for x in range(1, depth):
-			f.write("\nStep {} - {}".format(x, controller.solution[x]))
-			for z in range(0,rows):
-				f.write('\n'+controller.solution_frames[x][z])	
-		f.write("\nWon in {} steps!".format(depth-1))	
+		print ("No movements left, can not find a solution.")			
 			 
 			
 				

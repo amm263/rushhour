@@ -1,23 +1,12 @@
 from model import Model
 import sys
 class Controller:
-	def __init__(self, rows, columns, board, verbose):
-		self.model = Model(rows, columns, board)
+	def __init__(self, model, verbose):
+		self.model = model
 		self.curdepth = 0
 		self.verbose = verbose
-		self.solution = []
-		self.solution_frames = []
-		
-	def save_solution(self, board, depth):
-		for x in range(depth, 0, -1):
-			self.solution.append("Move car {} {}".format(board.car, board.direction))
-			self.solution_frames.append(board.frame)
-			board = board.parent
-		self.solution.reverse()
-		self.solution_frames.reverse()	
-				
-		
 	
+	#Start the game. True is returned if a solution was found, False otherwise.
 	def play(self):
 		depth = 0
 		while True:
@@ -25,16 +14,17 @@ class Controller:
 			curboardlist = self.model.boardtree[depth]
 			depth += 1
 			for board in curboardlist:
-				car_list = self.get_car_list(board.frame)
+				originframe = self.model.split_frame(board.frame); 
+				car_list = self.get_car_list(originframe)
 				for car in car_list:
 					if car['id'] == 'r': # Test if the red car is in a winning position.
 						if car['tail_y']+car['size'] == self.model.cols:
-							self.save_solution(board, depth)
-							return 
+							self.model.save_solution(board, depth)
+							return True
 					if car['alignment'] == '-':			#Moves orizontally
-						if (car['tail_y'] > 0) and (board.frame[car['tail_x']][car['tail_y']-1] == '.') :
+						if (car['tail_y'] > 0) and (originframe[car['tail_x']][car['tail_y']-1] == '.') :
 							#Move Left
-							curframe = board.frame.copy()
+							curframe = originframe.copy()
 							currow = list(curframe[car['tail_x']])
 							currow[car['tail_y']-1] = car['id']
 							currow[car['tail_y']+car['size']-1] = '.'
@@ -42,9 +32,9 @@ class Controller:
 							if not self.model.find_frame(curframe):
 								self.model.append_frame(depth, curframe, board, car['id'], 'Left')
 								moved = True
-						if ((car['tail_y']+car['size']) < self.model.cols) and (board.frame[car['tail_x']][car['tail_y']+car['size']] == '.') :  
+						if ((car['tail_y']+car['size']) < self.model.cols) and (originframe[car['tail_x']][car['tail_y']+car['size']] == '.') :  
 							#Move Right
-							curframe = board.frame.copy()
+							curframe = originframe.copy()
 							currow = list(curframe[car['tail_x']])
 							currow[(car['tail_y']+car['size'])] = car['id']
 							currow[car['tail_y']] = '.'
@@ -53,9 +43,9 @@ class Controller:
 								self.model.append_frame(depth, curframe, board, car['id'], 'Right')
 								moved = True
 					else:								#Moves vertically
-						if (car['tail_x'] > 0) and (board.frame[car['tail_x']-1][car['tail_y']] == '.') :
+						if (car['tail_x'] > 0) and (originframe[car['tail_x']-1][car['tail_y']] == '.') :
 							#Move Up
-							curframe = board.frame.copy()
+							curframe = originframe.copy()
 							currow_tail = list(curframe[car['tail_x']-1])
 							currow_head = list(curframe[car['tail_x']+car['size']-1])
 							currow_tail[car['tail_y']] = car['id']
@@ -65,9 +55,9 @@ class Controller:
 							if not self.model.find_frame(curframe):
 								self.model.append_frame(depth, curframe, board, car['id'], 'Up')
 								moved = True
-						if ((car['tail_x']+car['size']) < self.model.rows) and (board.frame[car['tail_x']+car['size']][car['tail_y']] == '.') : 
+						if ((car['tail_x']+car['size']) < self.model.rows) and (originframe[car['tail_x']+car['size']][car['tail_y']] == '.') : 
 							#Move Down 
-							curframe = board.frame.copy()
+							curframe = originframe.copy()
 							currow_tail = list(curframe[car['tail_x']])
 							currow_head = list(curframe[car['tail_x']+car['size']])
 							currow_tail[car['tail_y']] = '.'
@@ -78,8 +68,8 @@ class Controller:
 								self.model.append_frame(depth, curframe, board, car['id'], 'Down')	
 								moved = True		
 			if not moved:
-				print ("No movements left, can not find a solution.")
-				break
+				#No movements left, can not find a solution.
+				return False
 	
 	# Analyze a frame and returns the list of cars.
 	# This function assumes that the first alphabetic character found is the 'tail' of the car.
