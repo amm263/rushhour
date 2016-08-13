@@ -18,7 +18,7 @@ Any input file must contain a simple board formatted as:
 
 `.`characters are used as empty cells.  
 Alphabetic characters are reserved for cars.   
-`.` is reserved for the special red car. 
+`r` is reserved for the special red car. 
 
 The solution to the problem is printed on console in interactive mode or saved to a file with the *.solved* extension.
 To always see the solution on console is recommended to use the verbose (-v) option.  
